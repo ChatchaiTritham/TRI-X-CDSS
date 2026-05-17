@@ -1,4 +1,4 @@
-# TRI-X-CDSS
+﻿# TRI-X-CDSS
 
 ## Overview
 
@@ -80,7 +80,7 @@ pytest tests -v
 TRI-X-CDSS is currently an implementation/integration repository. No standalone
 TRI-X-CDSS manuscript is active at this time. If a future integration or
 benchmark manuscript is written, it should be treated as in preparation until it
-is independently verified and published.
+is independently verified and documented.
 
 The repository currently supports:
 
@@ -106,7 +106,7 @@ The implementation package connects:
 
 TRI-X-CDSS is an implementation/integration repository. Cite this software
 repository using `CITATION.cff`; do not cite it as a standalone article unless a
-future manuscript is written, verified, and published.
+future manuscript is written, verified, and documented.
 
 ## Contact
 
