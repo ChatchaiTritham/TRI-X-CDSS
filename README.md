@@ -92,22 +92,6 @@ The repository currently supports:
 Use this repository to support reproducibility and integration claims, not to
 increase the standalone article count.
 
-## Methodological References
-
-The implementation package connects:
-
-- TRI-X as the framework owner
-- SURgul/SRGL as governance logic
-- DRAS-5 as stateful risk-action behavior
-- ORASR as pathway routing
-- SynDX as synthetic validation/XAI evidence
-
-## Citation
-
-TRI-X-CDSS is an implementation/integration repository. Cite this software
-repository using `CITATION.cff`; do not cite it as a standalone article unless a
-future manuscript is written, verified, and documented.
-
 ## Contact
 
 ### Contact Author
