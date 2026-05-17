@@ -22,7 +22,7 @@ setup(
     name="trix-cdss",
     version="1.0.0",
     author="Chatchai Tritham, Chakkrit Snae Namahoot",
-    author_email="chatchait66@nu.ac.th",
+    author_email="chatchait66@nu.ac.th, chakkrits@nu.ac.th",
     description="TRI-X: Three-Tier Evaluation Framework for Dizziness Clinical Decision Support",
     long_description=long_description,
     long_description_content_type="text/markdown",

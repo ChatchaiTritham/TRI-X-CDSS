@@ -1,0 +1,8 @@
+services:
+  trix-cdss:
+    build: .
+    image: chatchaitritham/trix-cdss:latest
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: python -m pytest tests -q
