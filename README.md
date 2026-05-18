@@ -2,114 +2,98 @@
 
 ## Overview
 
-Three-tier evaluation framework for dizziness clinical decision support.
+Integrated TRI-X implementation package connecting triage, TiTrATE, governance, routing, and patient-level examples.
 
-## Installation
+This repository is part of an eight-repository clinical decision-support research portfolio. Current status: manuscript or component package in preparation. The repository role is **implementation/integration**.
 
-```bash
+## Standard Repository Layout
+
+| Path | Purpose |
+|---|---|
+| `src/` | Package source code: `trix_cdss` |
+| `tests/` | Unit, smoke, and behavior checks |
+| `scripts/` | Reproducibility and export scripts |
+| `examples/` | Runnable examples and demonstrations |
+| `figures/`, `visualizations/`, `outputs/`, `results/` | Generated visual and result artifacts |
+| `data/`, `models/`, `evaluation/` | Dataset, model, and evaluation assets when used by this repo |
+| `FIGURE_MANIFEST.csv` | Curated figure inventory for manuscript or component evidence |
+| `pyproject.toml`, `setup.py`, `requirements.txt`, `pytest.ini` | Python package and test configuration |
+
+## Architecture Flow
+
+```mermaid
+flowchart LR
+    A[Input data or scenario] --> B[Core package logic]
+    B --> C[Safety and quality checks]
+    C --> D[Metrics and audit outputs]
+    D --> E[Curated figures and result artifacts]
+```
+
+## Core Logic
+
+- Load clinical scenario.
+- Run core TRI-X components.
+- Produce trajectory and interpretation artifacts.
+- Validate package imports and example outputs.
+
+## Key Formulas And Rules
+
+- Tier output: y = G(R_triage, R_titrate, R_governance, R_route)
+- Conservative decision: d = max_risk(d_triage, d_route, d_state)
+- Implementation evidence: run example -> export trajectory -> verify smoke test
+
+## Data, Results, Charts, And Graphs
+
+The curated visual set is controlled by FIGURE_MANIFEST.csv and currently lists **3** figure entries. The manifest links figure IDs, roles, source scripts, source data, captions, sections, timestamps, and export DPI.
+
+| ID | Role | PNG | PDF |
+|---|---|---|---|
+| TRIXCDSS-F1 | implementation | `examples\output\fig1_bppv_trajectory_epley_immediate.png` | `not listed` |
+| TRIXCDSS-F2 | implementation | `examples\output\fig2_bppv_trajectory_comparison.png` | `not listed` |
+| TRIXCDSS-F3 | implementation | `examples\output\fig3_shap_feature_importance.png` | `not listed` |
+
+## Reproduce
+
+```powershell
+cd D:\PhD-NU\Manuscript\GitHub\TRI-X-CDSS
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -e .
+python -m pytest -q
 ```
 
-## Repository Structure
+If figure-generation scripts are present, run the matching script listed in `FIGURE_MANIFEST.csv` from the repository root.
 
-- `src/trix_cdss/`: source package
-- `tests/`: automated tests
-- `examples/`: example usage
-- `notebooks/`: interactive walkthroughs
-- `docs/`: supporting documentation
+## Verification Criteria
 
-## Tutorials And Demos
+- Root metadata and package files are present.
+- Source paths follow `src/<package>/...` where the package shape allows it.
+- Tests pass with `python -m pytest -q`.
+- Curated figures are listed in `FIGURE_MANIFEST.csv` rather than inferred from every raw image file.
+- Manuscript status wording stays conservative: in preparation, implementation, supplementary, or reproducibility/component evidence as appropriate.
+- No local manuscript path, external assistant wording, or software metadata block is kept in the repository text.
 
-- Example script:
-  - `examples/tier1_examples/bppv_simulation_demo.py`: end-to-end Tier 1 BPPV simulation, figure generation, and treatment comparison
-  - `scripts/generate_manuscript_manifest.py`: implementation figure manifest and visual QA sheet
-- Notebooks:
-  - `notebooks/01_trix_cdss_quickstart.ipynb`: interactive quickstart across Triage, SRGL, TiTrATE, DRAS-5, and ORASR
-  - `notebooks/02_trix_cdss_case_comparison.ipynb`: richer multi-case comparison with urgency and routing visual outputs
+## Portfolio Relationship
 
-Run the example from the repository root:
-
-```bash
-python examples/tier1_examples/bppv_simulation_demo.py
-```
-
-## Implementation Figure Status
-
-TRI-X-CDSS is currently an implementation/integration repository. Its figures
-are implementation evidence, not a standalone article figure set. Do not claim
-TRI-X-CDSS as a standalone article package unless a separate integration or
-benchmark manuscript is written and verified.
-
-Regenerate example figures:
-
-```bash
-python examples/tier1_examples/bppv_simulation_demo.py
-```
-
-Regenerate the manifest and visual QA sheet:
-
-```bash
-python scripts/generate_manuscript_manifest.py
-```
-
-Outputs:
-
-- `examples/output/`: PNG implementation figures
-- `FIGURE_MANIFEST.csv`: figure role, source script, source artifact, caption,
-  and implementation-evidence section
-- `examples/output/visual_qa_contact_sheet.png`: visual QA sheet
-
-## Cross-Repository Tutorial Charts
-
-- `../tutorial_surface_comparison.png`: scripts vs examples vs notebooks across all repositories
-- `../tutorial_asset_density.png`: interactive/tutorial asset density normalized by repository size
-
-## Source Layout
-
-This repository uses the recommended `src/<package_name>` layout.
-Importable code lives in `src/trix_cdss/`.
-
-## Testing
-
-```bash
-pytest tests -v
-```
-
-## Manuscript Alignment
-
-TRI-X-CDSS is currently an implementation/integration repository. No standalone
-TRI-X-CDSS manuscript is active at this time. If a future integration or
-benchmark manuscript is written, it should be treated as in preparation until it
-is independently verified and documented.
-
-The repository currently supports:
-
-- Tier 1 BPPV simulation evidence
-- Epley-immediate and comparative trajectory figures
-- SHAP feature-importance implementation evidence
-- integration across Triage, SRGL, TiTrATE, DRAS-5, and ORASR concepts
-
-Use this repository to support reproducibility and integration claims, not to
-increase the standalone article count.
+| Repository | Role |
+|---|---|
+| BASICS-CDSS | Beyond-accuracy evaluation methodology |
+| TRI-X | Framework-level package |
+| ORASR | Routing and safety-action component |
+| DRAS-5 | Dynamic risk-state component |
+| SAFE-Gate | Safety-gated ensemble framework |
+| SynDX | Synthetic validation and explainability evidence |
+| SURgul | SRGL/governance reproducibility component |
+| TRI-X-CDSS | Integration and implementation package |
 
 ## Contact
 
-### Contact Author
+**Chatchai Tritham**  
+Department of Computer Science and Information Technology, Faculty of Science, Naresuan University, Phitsanulok 65000, Thailand  
+Email: chatchait66@nu.ac.th  
+ORCID: 0000-0001-7899-228X
 
-**Chatchai Tritham** (Author)
-
-- Email: [chatchait66@nu.ac.th](mailto:chatchait66@nu.ac.th)
-- ORCID: [0000-0001-7899-228X](https://orcid.org/0000-0001-7899-228X)
-- Department of Computer Science and Information Technology
-- Faculty of Science, Naresuan University
-- Phitsanulok 65000, Thailand
-
-### Supervisor
-
-**Chakkrit Snae Namahoot**
-
-- E-mail: [chakkrits@nu.ac.th](mailto:chakkrits@nu.ac.th)
-- ORCID: [0000-0003-4660-4590](https://orcid.org/0000-0003-4660-4590)
-- Department of Computer Science and Information Technology
-- Faculty of Science, Naresuan University
-- Phitsanulok 65000, Thailand
+**Chakkrit Snae Namahoot**  
+Department of Computer Science and Information Technology, Faculty of Science, Naresuan University, Phitsanulok 65000, Thailand  
+Email: chakkrits@nu.ac.th  
+ORCID: 0000-0003-4660-4590
