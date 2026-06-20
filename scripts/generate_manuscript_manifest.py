@@ -39,7 +39,7 @@ FIGURES = [
         "figure_id": "TRIXCDSS-F3",
         "stem": "fig3_shap_feature_importance",
         "role": "implementation",
-        "caption": "Simulated SHAP feature-importance example for DRAS-5 urgency interpretation.",
+        "caption": "Rule-based DRAS-5 feature-importance attributions for the synthetic demo patient (computed by classify_urgency_level, not SHAP).",
         "article_section": "Implementation evidence",
     },
 ]

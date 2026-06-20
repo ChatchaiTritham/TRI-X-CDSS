@@ -317,9 +317,9 @@ def plot_shap_importance(
         )
 
     ax.axvline(x=0, color="black", linewidth=1.5, linestyle="-")
-    ax.set_xlabel("SHAP Value (Feature Impact)", fontsize=12, fontweight="bold")
+    ax.set_xlabel("Feature Contribution to Urgency Score", fontsize=12, fontweight="bold")
     ax.set_title(
-        "SHAP Feature Importance for DRAS-5 Classification", fontsize=14, fontweight="bold", pad=15
+        "Feature Importance for DRAS-5 Classification", fontsize=14, fontweight="bold", pad=15
     )
     ax.grid(True, alpha=0.3, axis="x")
 

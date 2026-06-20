@@ -5,7 +5,7 @@ This example demonstrates:
 2. BPPV disease model simulation
 3. Intervention comparison (Epley immediate vs delayed)
 4. Visualization of disease trajectories
-5. SHAP feature importance for DRAS-5 classification
+5. Feature importance for DRAS-5 classification (computed by the classifier)
 
 Usage:
     python examples/tier1_examples/bppv_simulation_demo.py
@@ -32,6 +32,8 @@ from trix_cdss.tier1_patient.digital_twin import (
     generate_archetype,
     BPPVModel,
 )
+from trix_cdss.core import classify_urgency_level
+from trix_cdss.core.dras5 import DRAS5Features
 from trix_cdss.visualization import (
     plot_disease_trajectory,
     plot_multiple_trajectories,
@@ -190,18 +192,30 @@ def main():
     )
     print(f"   [OK] Saved: {output_dir / 'fig2_bppv_trajectory_comparison.png'}")
 
-    # Plot 3: SHAP feature importance (simulated)
-    print("[PLOT] Creating Figure 3: SHAP Feature Importance for DRAS-5...")
-    feature_importance = {
-        "positional_trigger": -2.0,  # Lowers urgency (suggests BPPV)
-        "vertigo_severity_high": +1.5,  # Increases urgency
-        "prior_bppv": -0.5,  # Lowers urgency (known condition)
-        "age_65": +0.5,  # Slightly increases urgency
-        "hypertension": +0.3,  # Slight risk factor
-        "nystagmus_present": -1.0,  # In BPPV context, expected
-        "ataxia_absent": -1.5,  # Absence lowers urgency (no central signs)
-        "stroke_risk_low": -0.8,  # Low stroke risk
-    }
+    # Plot 3: Feature importance for DRAS-5, computed from the actual classifier
+    # (not a hardcoded illustration). Build the DRAS-5 feature vector from the
+    # demo patient + simulated presentation, then read back the per-feature
+    # contributions that classify_urgency_level() attributed to the decision.
+    print("[PLOT] Creating Figure 3: DRAS-5 Feature Importance (computed)...")
+    initial_state = trajectory_natural.symptom_states[0]
+    dras_features = DRAS5Features(
+        age=patient.age,
+        gender=patient.gender.value,
+        atrial_fibrillation=patient.atrial_fibrillation,
+        hypertension=patient.hypertension,
+        diabetes=patient.diabetes,
+        prior_stroke=patient.prior_stroke,
+        symptom_duration_hours=float(time_points[0]),
+        symptom_severity=int(round(initial_state.vertigo_severity)),
+        # Posterior-canal BPPV: positional trigger, no central HINTS signs.
+        positional_trigger=(patient.disease_params.get("canal_affected") is not None),
+        predicted_disease="bppv",
+        stroke_probability=patient.calculate_stroke_risk() / 10.0,
+    )
+    dras_classification = classify_urgency_level(dras_features)
+    feature_importance = dras_classification.feature_importance
+    print(f"   [OK] Classifier returned DRAS-{dras_classification.level.value} "
+          f"with {len(feature_importance)} contributing features")
     fig3 = plot_shap_importance(
         feature_importance,
         save_path=output_dir / "fig3_shap_feature_importance.png",

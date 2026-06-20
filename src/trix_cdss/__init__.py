@@ -21,8 +21,8 @@ DRAS-5 Urgency Classification:
 from trix_cdss.constants import FRAMEWORK_NAME, PACKAGE_VERSION
 
 __version__ = PACKAGE_VERSION
-__author__ = "Clinical AI Research Team"
-__email__ = "research@example.org"
+__author__ = "Chatchai Tritham; Chakkrit Snae Namahoot"
+__email__ = "chatchait66@nu.ac.th"
 
 # Core imports
 from trix_cdss.core import (  # Triage; TiTrATE; SRGL; DRAS-5; ORASR
