@@ -483,7 +483,8 @@ def calibrate_thresholds(
 def explain_classification(classification: DRAS5Classification) -> str:
     """Generate human-readable explanation of DRAS-5 classification.
 
-    Uses SHAP-style feature importance to explain decision.
+    Uses the classifier's rule-based, additive feature attributions to explain
+    the decision (these are not Shapley/SHAP values).
 
     Args:
         classification: DRAS5Classification to explain

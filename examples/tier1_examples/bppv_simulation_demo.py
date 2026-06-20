@@ -37,8 +37,8 @@ from trix_cdss.core.dras5 import DRAS5Features
 from trix_cdss.visualization import (
     apply_pub_style,
     plot_disease_trajectory,
+    plot_feature_attribution,
     plot_multiple_trajectories,
-    plot_shap_importance,
 )
 
 
@@ -196,11 +196,12 @@ def main():
     )
     print(f"   [OK] Saved: {output_dir / 'fig2_bppv_trajectory_comparison.{pdf,png}'}")
 
-    # Plot 3: Feature importance for DRAS-5, computed from the actual classifier
-    # (not a hardcoded illustration). Build the DRAS-5 feature vector from the
-    # demo patient + simulated presentation, then read back the per-feature
-    # contributions that classify_urgency_level() attributed to the decision.
-    print("[PLOT] Creating Figure 3: DRAS-5 Feature Importance (computed)...")
+    # Plot 3: Rule-based feature attribution for DRAS-5 urgency, computed from
+    # the actual classifier (not a hardcoded illustration and NOT SHAP). Build
+    # the DRAS-5 feature vector from the demo patient + simulated presentation,
+    # then read back the per-feature contributions that classify_urgency_level()
+    # attributed to the decision.
+    print("[PLOT] Creating Figure 3: Rule-based feature attribution (DRAS-5 urgency)...")
     initial_state = trajectory_natural.symptom_states[0]
     dras_features = DRAS5Features(
         age=patient.age,
@@ -220,12 +221,12 @@ def main():
     feature_importance = dras_classification.feature_importance
     print(f"   [OK] Classifier returned DRAS-{dras_classification.level.value} "
           f"with {len(feature_importance)} contributing features")
-    fig3 = plot_shap_importance(
+    fig3 = plot_feature_attribution(
         feature_importance,
-        save_path=output_dir / "fig3_shap_feature_importance.pdf",
+        save_path=output_dir / "fig3_rule_based_feature_attribution.pdf",
         show=False,
     )
-    print(f"   [OK] Saved: {output_dir / 'fig3_shap_feature_importance.{pdf,png}'}")
+    print(f"   [OK] Saved: {output_dir / 'fig3_rule_based_feature_attribution.{pdf,png}'}")
 
     print()
 
