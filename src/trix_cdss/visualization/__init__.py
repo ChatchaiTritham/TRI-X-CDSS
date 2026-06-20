@@ -7,6 +7,8 @@ This module provides comprehensive visualization tools for all three tiers:
 """
 
 from trix_cdss.visualization.patient_level_viz import (
+    PALETTE,
+    apply_pub_style,
     plot_causal_dag,
     plot_confusion_matrix,
     plot_disease_trajectory,
@@ -17,6 +19,9 @@ from trix_cdss.visualization.patient_level_viz import (
 )
 
 __all__ = [
+    # Shared publication style
+    "apply_pub_style",
+    "PALETTE",
     # Tier 1 visualizations
     "plot_disease_trajectory",
     "plot_multiple_trajectories",
