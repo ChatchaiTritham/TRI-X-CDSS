@@ -2,7 +2,7 @@
 
 This module provides visualization functions for:
 - Disease trajectory plots
-- SHAP feature importance
+- Rule-based feature attribution (DRAS-5 urgency)
 - NMF temporal patterns
 - Causal DAGs
 - Performance metrics (ROC, confusion matrix)
@@ -11,64 +11,27 @@ This module provides visualization functions for:
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from trix_cdss.constants import DEFAULT_DPI, DEFAULT_FIGURE_SIZE
 
-# Canonical Top-Tier figure style (shared across all ChatchaiTritham PhD repos).
-# See GitHub/_management/FIGURE_STYLE.md. Color-blind-safe Okabe-Ito, in order.
-PALETTE = ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#000000"]
-
-
-def apply_pub_style() -> None:
-    """Apply the shared publication rcParams + Okabe-Ito color cycle.
-
-    Call once before plotting so every figure (and every repo) shares one
-    publication-grade look: serif (Times) fonts, 300-dpi vector-friendly output,
-    spines off, constrained layout, color-blind-safe series colors.
-    """
-    mpl.rcParams.update(
-        {
-            "figure.dpi": 150,
-            "savefig.dpi": 300,
-            "savefig.bbox": "tight",
-            "savefig.pad_inches": 0.02,
-            "font.family": "serif",
-            "font.serif": ["Times New Roman", "Times", "DejaVu Serif"],
-            "mathtext.fontset": "stix",
-            "font.size": 10,
-            "axes.titlesize": 11,
-            "axes.labelsize": 10,
-            "xtick.labelsize": 9,
-            "ytick.labelsize": 9,
-            "legend.fontsize": 9,
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-            "axes.linewidth": 0.8,
-            "axes.grid": True,
-            "grid.alpha": 0.3,
-            "grid.linewidth": 0.6,
-            "lines.linewidth": 1.6,
-            "lines.markersize": 5,
-            "legend.frameon": False,
-            "figure.constrained_layout.use": True,
-            "axes.prop_cycle": mpl.cycler(color=PALETTE),
-        }
-    )
+# Canonical Top-Tier figure style, vendored byte-identical from
+# GitHub/_management/pubviz.py (see FIGURE_STYLE.md). Single source of truth for
+# the Okabe-Ito palette, publication rcParams, and the matched pdf+png saver.
+from trix_cdss.visualization.pubviz import PALETTE, apply_pub_style, save_fig
 
 
 def _save_fig(fig: Figure, save_path: Union[str, Path]) -> None:
-    """Save a figure as BOTH vector .pdf and 300-dpi .png (same basename)."""
+    """Save vector .pdf + 300-dpi .png via the canonical pubviz.save_fig.
+
+    Bridges the legacy ``save_path`` (a path with extension) signature used by
+    these plotters onto ``save_fig(fig, basename, out_dir)``.
+    """
     path = Path(save_path)
-    for suffix in (".pdf", ".png"):
-        out = path.with_suffix(suffix)
-        fig.savefig(out, dpi=300, bbox_inches="tight")
-        print(f"[OK] Figure saved to: {out}")
+    save_fig(fig, path.stem, out_dir=path.parent if str(path.parent) else ".")
 
 
 # Double-column ≈ 7.2 in, single-column ≈ 3.5 in (FIGURE_STYLE.md rule 2).
@@ -80,6 +43,36 @@ DEFAULT_BAR_WIDTH = 0.2
 DEFAULT_SEVERITY_SCALE_MAX = 10.5
 DEFAULT_BINARY_SCALE_MAX = 1.2
 DEFAULT_DRAS_SCALE_MAX = 5.5
+
+# Faint horizontal severity bands (0-10 scale) drawn behind trajectory panels so
+# the same vertical reference holds across every scenario panel. Light enough
+# that the symptom lines stay dominant.
+SEVERITY_ZONES: List[Tuple[float, float, str, str]] = [
+    (0.0, 3.0, "#2ca02c", "Mild (0-3)"),
+    (3.0, 6.0, "#fee08b", "Moderate (3-6)"),
+    (6.0, 10.0, "#d73027", "Severe (6-10)"),
+]
+
+
+def _draw_severity_zones(ax, with_labels: bool = False) -> None:
+    """Shade faint mild/moderate/severe severity bands for temporal alignment."""
+    for lo, hi, color, label in SEVERITY_ZONES:
+        ax.axhspan(lo, hi, alpha=0.07, color=color, zorder=0,
+                   label=label if with_labels else None)
+
+
+def _mark_intervention(ax, traj, label: bool = True) -> None:
+    """Replicate the intervention time (e.g. Epley maneuver) as a vline.
+
+    Reads the timing from the trajectory's interventions dict (skips the
+    boolean success/flag entries), so every panel shows the same event marker.
+    """
+    for name, time in traj.interventions.items():
+        # Skip flag entries (success/window booleans) -- only real timings.
+        if name.endswith("_successful") or isinstance(time, bool):
+            continue
+        ax.axvline(x=time, color=PALETTE[2], linestyle="--", linewidth=1.2,
+                   zorder=1, label=f"Intervention: {name}" if label else None)
 
 
 def plot_disease_trajectory(
@@ -127,20 +120,15 @@ def plot_disease_trajectory(
     # Plot 1: Symptom severity (continuous). Distinct color + marker per series
     # so the panel stays legible in grayscale / for color-blind readers.
     ax1 = axes[0]
+    # Faint severity zones first so they sit behind the curves (temporal anchor).
+    _draw_severity_zones(ax1)
     ax1.plot(time_points, vertigo, marker="o", label="Vertigo", color=PALETTE[0])
     ax1.plot(time_points, nausea, marker="s", label="Nausea", color=PALETTE[1])
     ax1.fill_between(time_points, 0, vertigo, alpha=0.15, color=PALETTE[0])
     ax1.fill_between(time_points, 0, nausea, alpha=0.15, color=PALETTE[1])
 
-    # Mark interventions
-    for intervention_name, intervention_time in trajectory.interventions.items():
-        if intervention_name != "epley_successful":
-            ax1.axvline(
-                x=intervention_time,
-                color=PALETTE[2],
-                linestyle="--",
-                label=f"Intervention: {intervention_name}",
-            )
+    # Mark interventions (Epley maneuver time etc.) via the shared helper.
+    _mark_intervention(ax1, trajectory)
 
     ax1.set_ylabel("Symptom severity (0–10)")
     ax1.set_ylim(0, DEFAULT_SEVERITY_SCALE_MAX)
@@ -257,17 +245,30 @@ def plot_multiple_trajectories(
     markers = ["o", "s", "^", "D", "v", "P"]
     linestyles = ["-", "--", "-.", ":"]
 
+    # Faint severity zones behind BOTH panels so the mild/moderate/severe
+    # reference lines up across the comparison.
+    ax1, ax2 = axes[0], axes[1]
+    _draw_severity_zones(ax1, with_labels=True)
+    _draw_severity_zones(ax2)
+
+    def _intervention_time(traj):
+        """Earliest real intervention timing for this scenario (or None)."""
+        for name, time in traj.interventions.items():
+            if name.endswith("_successful") or isinstance(time, bool):
+                continue
+            return name, time
+        return None
+
     # Plot vertigo severity
-    ax1 = axes[0]
     for i, traj in enumerate(trajectories):
         time_points = np.array(traj.time_points)
         vertigo = [s.vertigo_severity for s in traj.symptom_states]
+        color = PALETTE[i % len(PALETTE)]
 
         label = f"{traj.patient_id}"
-        if traj.interventions:
-            intervention_names = [k for k in traj.interventions.keys() if k != "epley_successful"]
-            if intervention_names:
-                label += f" ({intervention_names[0]})"
+        ev = _intervention_time(traj)
+        if ev is not None:
+            label += f" ({ev[0]})"
 
         ax1.plot(
             time_points,
@@ -275,16 +276,22 @@ def plot_multiple_trajectories(
             marker=markers[i % len(markers)],
             linestyle=linestyles[i % len(linestyles)],
             label=label,
-            color=PALETTE[i % len(PALETTE)],
+            color=color,
         )
+
+        # Replicate this scenario's intervention marker on EVERY panel, color-
+        # matched to its trajectory so the reader sees when Epley was applied.
+        if ev is not None:
+            for ax in (ax1, ax2):
+                ax.axvline(x=ev[1], color=color, linestyle=":", linewidth=1.1,
+                           alpha=0.8, zorder=1)
 
     ax1.set_ylabel("Vertigo severity (0–10)")
     ax1.set_ylim(0, DEFAULT_SEVERITY_SCALE_MAX)
-    ax1.legend(loc="upper right")
+    ax1.legend(loc="upper right", ncol=2, fontsize=8)
     ax1.set_title(f"Disease trajectory comparison ({len(trajectories)} scenarios)")
 
     # Plot nausea severity (same color/marker mapping as vertigo panel)
-    ax2 = axes[1]
     for i, traj in enumerate(trajectories):
         time_points = np.array(traj.time_points)
         nausea = [s.nausea_severity for s in traj.symptom_states]
@@ -310,17 +317,22 @@ def plot_multiple_trajectories(
     return fig
 
 
-def plot_shap_importance(
+def plot_feature_attribution(
     feature_importance: Dict[str, float],
     top_n: int = 10,
     save_path: Optional[Union[str, Path]] = None,
     show: bool = True,
     figsize: Tuple[float, float] = DEFAULT_BAR_PLOT_FIGSIZE,
 ) -> Figure:
-    """Plot SHAP feature importance bar chart.
+    """Plot rule-based feature attribution for DRAS-5 urgency.
+
+    Bars show the additive per-feature contributions that the rule-based
+    ``classify_urgency_level`` assigned when scoring one case. These are NOT
+    Shapley (SHAP) values and no fitted explainer is involved; the input is the
+    classifier's own attribution dictionary.
 
     Args:
-        feature_importance: Dictionary {feature_name: shap_value}
+        feature_importance: Dictionary {feature_name: rule_attribution_points}
         top_n: Number of top features to display
         save_path: Path to save figure
         show: Whether to display figure
@@ -336,7 +348,7 @@ def plot_shap_importance(
         ...     "age_75": 1.5,
         ...     "symptom_duration": 1.0,
         ... }
-        >>> fig = plot_shap_importance(feature_importance)
+        >>> fig = plot_feature_attribution(feature_importance)
     """
     # Sort by absolute value, then draw largest at the top (descending downward).
     sorted_features = sorted(feature_importance.items(), key=lambda x: abs(x[1]), reverse=True)[
@@ -373,8 +385,8 @@ def plot_shap_importance(
     ax.axvline(x=0, color="black", linewidth=1.0)
     # Headroom so value labels are not clipped by the axes box.
     ax.set_xlim(min(0, min(values)) - 0.18 * span, max(0, max(values)) + 0.18 * span)
-    ax.set_xlabel("Feature contribution to urgency score (points)")
-    ax.set_title("Feature importance for DRAS-5 classification")
+    ax.set_xlabel("Rule-based attribution to urgency score (points)")
+    ax.set_title("Rule-based feature attribution (DRAS-5 urgency)")
     ax.grid(True, axis="x")
 
     # Legend
@@ -393,6 +405,11 @@ def plot_shap_importance(
         plt.show()
 
     return fig
+
+
+# Backward-compatible alias: the old name implied SHAP, which this is not.
+# Kept so existing imports do not break; new code should use the rule-based name.
+plot_shap_importance = plot_feature_attribution
 
 
 def plot_nmf_patterns(

@@ -60,9 +60,9 @@ The figures are illustrative outputs from one patient-level scenario, kept under
 
 - `examples/output/fig1_bppv_trajectory_epley_immediate.png` — vertigo severity over time for a single BPPV patient who receives the Epley maneuver at presentation. Read it as the symptom curve the seeded disease model produces under immediate treatment.
 - `examples/output/fig2_bppv_trajectory_comparison.png` — the same patient under three plans (no intervention, immediate Epley, delayed Epley) on shared axes, so the trajectories can be compared directly.
-- `examples/output/fig3_shap_feature_importance.png` — a feature-importance bar chart for DRAS-5 urgency interpretation. The importance values are computed by the rule-based DRAS-5 classifier (`classify_urgency_level` in `src/trix_cdss/core/dras5.py`): the demo builds a `DRAS5Features` vector from the synthetic patient and reads back the per-feature contributions the classifier attributed to the decision. These are additive rule-based attributions, not Shapley (SHAP) values; the bars show how each feature pushed the urgency score up or down for this one synthetic case.
+- `examples/output/fig3_rule_based_feature_attribution.png` — a rule-based feature-attribution bar chart for DRAS-5 urgency interpretation. The attribution values are computed by the rule-based DRAS-5 classifier (`classify_urgency_level` in `src/trix_cdss/core/dras5.py`): the demo builds a `DRAS5Features` vector from the synthetic patient and reads back the per-feature contributions the classifier attributed to the decision. These are additive rule-based attributions, not Shapley values, and no fitted explainer is involved; the bars show how each feature pushed the urgency score up or down for this one synthetic case.
 
-All three figures are computed from the seeded simulation and the classifier; none of the plotted values are hardcoded. Figure 3 reflects the rule-based feature attributions for the single demo patient, not a cohort or a fitted SHAP explainer.
+All three figures are computed from the seeded simulation and the classifier; none of the plotted values are hardcoded. Figure 3 reflects the rule-based feature attributions for the single demo patient, not a cohort and not a fitted explainer.
 
 ## Data
 

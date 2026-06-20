@@ -37,9 +37,9 @@ FIGURES = [
     },
     {
         "figure_id": "TRIXCDSS-F3",
-        "stem": "fig3_shap_feature_importance",
+        "stem": "fig3_rule_based_feature_attribution",
         "role": "implementation",
-        "caption": "Rule-based DRAS-5 feature-importance attributions for the synthetic demo patient (computed by classify_urgency_level, not SHAP).",
+        "caption": "Rule-based feature attribution (DRAS-5 urgency) for the synthetic demo patient (computed by classify_urgency_level; additive rule attributions, not Shapley values).",
         "article_section": "Implementation evidence",
     },
 ]
