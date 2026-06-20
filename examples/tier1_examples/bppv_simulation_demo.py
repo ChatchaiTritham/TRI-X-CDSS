@@ -35,6 +35,7 @@ from trix_cdss.tier1_patient.digital_twin import (
 from trix_cdss.core import classify_urgency_level
 from trix_cdss.core.dras5 import DRAS5Features
 from trix_cdss.visualization import (
+    apply_pub_style,
     plot_disease_trajectory,
     plot_multiple_trajectories,
     plot_shap_importance,
@@ -174,23 +175,26 @@ def main():
     print("Step 5: Generating Visualizations...")
     print("-" * 80)
 
-    # Plot 1: Single trajectory (Epley immediate)
+    # Apply the shared Top-Tier publication style once, before any plotting.
+    apply_pub_style()
+
+    # Plot 1: Single trajectory (Epley immediate). Saves both .pdf + .png.
     print("[PLOT] Creating Figure 1: BPPV Trajectory (Epley Immediate)...")
     fig1 = plot_disease_trajectory(
         trajectory_epley_immediate,
-        save_path=output_dir / "fig1_bppv_trajectory_epley_immediate.png",
+        save_path=output_dir / "fig1_bppv_trajectory_epley_immediate.pdf",
         show=False,
     )
-    print(f"   [OK] Saved: {output_dir / 'fig1_bppv_trajectory_epley_immediate.png'}")
+    print(f"   [OK] Saved: {output_dir / 'fig1_bppv_trajectory_epley_immediate.{pdf,png}'}")
 
     # Plot 2: Comparison of all three scenarios
     print("[PLOT] Creating Figure 2: Trajectory Comparison (Natural vs Epley Immediate vs Delayed)...")
     fig2 = plot_multiple_trajectories(
         [trajectory_natural, trajectory_epley_immediate, trajectory_epley_delayed],
-        save_path=output_dir / "fig2_bppv_trajectory_comparison.png",
+        save_path=output_dir / "fig2_bppv_trajectory_comparison.pdf",
         show=False,
     )
-    print(f"   [OK] Saved: {output_dir / 'fig2_bppv_trajectory_comparison.png'}")
+    print(f"   [OK] Saved: {output_dir / 'fig2_bppv_trajectory_comparison.{pdf,png}'}")
 
     # Plot 3: Feature importance for DRAS-5, computed from the actual classifier
     # (not a hardcoded illustration). Build the DRAS-5 feature vector from the
@@ -218,10 +222,10 @@ def main():
           f"with {len(feature_importance)} contributing features")
     fig3 = plot_shap_importance(
         feature_importance,
-        save_path=output_dir / "fig3_shap_feature_importance.png",
+        save_path=output_dir / "fig3_shap_feature_importance.pdf",
         show=False,
     )
-    print(f"   [OK] Saved: {output_dir / 'fig3_shap_feature_importance.png'}")
+    print(f"   [OK] Saved: {output_dir / 'fig3_shap_feature_importance.{pdf,png}'}")
 
     print()
 

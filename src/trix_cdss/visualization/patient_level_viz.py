@@ -11,6 +11,7 @@ This module provides visualization functions for:
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -19,15 +20,61 @@ from matplotlib.figure import Figure
 
 from trix_cdss.constants import DEFAULT_DPI, DEFAULT_FIGURE_SIZE
 
-# Set style
-sns.set_style("whitegrid")
-sns.set_palette("husl")
-plt.rcParams["figure.figsize"] = DEFAULT_FIGURE_SIZE
-plt.rcParams["font.size"] = 11
+# Canonical Top-Tier figure style (shared across all ChatchaiTritham PhD repos).
+# See GitHub/_management/FIGURE_STYLE.md. Color-blind-safe Okabe-Ito, in order.
+PALETTE = ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#000000"]
 
-DEFAULT_TRAJECTORY_FIGSIZE: Tuple[float, float] = (14.0, 10.0)
-DEFAULT_COMPARISON_FIGSIZE: Tuple[float, float] = (14.0, 8.0)
-DEFAULT_BAR_PLOT_FIGSIZE: Tuple[float, float] = (10.0, 6.0)
+
+def apply_pub_style() -> None:
+    """Apply the shared publication rcParams + Okabe-Ito color cycle.
+
+    Call once before plotting so every figure (and every repo) shares one
+    publication-grade look: serif (Times) fonts, 300-dpi vector-friendly output,
+    spines off, constrained layout, color-blind-safe series colors.
+    """
+    mpl.rcParams.update(
+        {
+            "figure.dpi": 150,
+            "savefig.dpi": 300,
+            "savefig.bbox": "tight",
+            "savefig.pad_inches": 0.02,
+            "font.family": "serif",
+            "font.serif": ["Times New Roman", "Times", "DejaVu Serif"],
+            "mathtext.fontset": "stix",
+            "font.size": 10,
+            "axes.titlesize": 11,
+            "axes.labelsize": 10,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "legend.fontsize": 9,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.linewidth": 0.8,
+            "axes.grid": True,
+            "grid.alpha": 0.3,
+            "grid.linewidth": 0.6,
+            "lines.linewidth": 1.6,
+            "lines.markersize": 5,
+            "legend.frameon": False,
+            "figure.constrained_layout.use": True,
+            "axes.prop_cycle": mpl.cycler(color=PALETTE),
+        }
+    )
+
+
+def _save_fig(fig: Figure, save_path: Union[str, Path]) -> None:
+    """Save a figure as BOTH vector .pdf and 300-dpi .png (same basename)."""
+    path = Path(save_path)
+    for suffix in (".pdf", ".png"):
+        out = path.with_suffix(suffix)
+        fig.savefig(out, dpi=300, bbox_inches="tight")
+        print(f"[OK] Figure saved to: {out}")
+
+
+# Double-column ≈ 7.2 in, single-column ≈ 3.5 in (FIGURE_STYLE.md rule 2).
+DEFAULT_TRAJECTORY_FIGSIZE: Tuple[float, float] = (7.2, 8.4)
+DEFAULT_COMPARISON_FIGSIZE: Tuple[float, float] = (7.2, 6.0)
+DEFAULT_BAR_PLOT_FIGSIZE: Tuple[float, float] = (7.2, 4.2)
 DEFAULT_GRID_ALPHA = 0.3
 DEFAULT_BAR_WIDTH = 0.2
 DEFAULT_SEVERITY_SCALE_MAX = 10.5
@@ -77,101 +124,100 @@ def plot_disease_trajectory(
     hearing_loss = [float(s.hearing_loss_present) for s in trajectory.symptom_states]
     tinnitus = [float(s.tinnitus_present) for s in trajectory.symptom_states]
 
-    # Plot 1: Symptom severity (continuous)
+    # Plot 1: Symptom severity (continuous). Distinct color + marker per series
+    # so the panel stays legible in grayscale / for color-blind readers.
     ax1 = axes[0]
-    ax1.plot(time_points, vertigo, marker="o", linewidth=2, label="Vertigo", color="#e74c3c")
-    ax1.plot(time_points, nausea, marker="s", linewidth=2, label="Nausea", color="#3498db")
-    ax1.fill_between(time_points, 0, vertigo, alpha=0.2, color="#e74c3c")
-    ax1.fill_between(time_points, 0, nausea, alpha=0.2, color="#3498db")
+    ax1.plot(time_points, vertigo, marker="o", label="Vertigo", color=PALETTE[0])
+    ax1.plot(time_points, nausea, marker="s", label="Nausea", color=PALETTE[1])
+    ax1.fill_between(time_points, 0, vertigo, alpha=0.15, color=PALETTE[0])
+    ax1.fill_between(time_points, 0, nausea, alpha=0.15, color=PALETTE[1])
 
     # Mark interventions
     for intervention_name, intervention_time in trajectory.interventions.items():
         if intervention_name != "epley_successful":
             ax1.axvline(
                 x=intervention_time,
-                color="#2ecc71",
+                color=PALETTE[2],
                 linestyle="--",
-                linewidth=2,
                 label=f"Intervention: {intervention_name}",
             )
 
-    ax1.set_ylabel("Severity (0-10)", fontsize=12, fontweight="bold")
+    ax1.set_ylabel("Symptom severity (0–10)")
     ax1.set_ylim(0, DEFAULT_SEVERITY_SCALE_MAX)
-    ax1.legend(loc="upper right", frameon=True, fancybox=True, shadow=True)
-    ax1.grid(True, alpha=DEFAULT_GRID_ALPHA)
+    ax1.legend(loc="upper right", ncol=2)
     ax1.set_title(
-        f"Disease Trajectory: {trajectory.disease_type} (Patient ID: {trajectory.patient_id})",
-        fontsize=14,
-        fontweight="bold",
-        pad=15,
+        f"Disease trajectory: {trajectory.disease_type} (patient {trajectory.patient_id})"
     )
 
-    # Plot 2: Clinical signs (binary)
+    # Plot 2: Clinical signs (binary). Hatching backs up color for accessibility.
     ax2 = axes[1]
     width = DEFAULT_BAR_WIDTH
     x_pos = np.arange(len(time_points))
 
-    ax2.bar(x_pos - 1.5 * width, ataxia, width, label="Ataxia", color="#e67e22", alpha=0.8)
-    ax2.bar(x_pos - 0.5 * width, nystagmus, width, label="Nystagmus", color="#9b59b6", alpha=0.8)
+    ax2.bar(x_pos - 1.5 * width, ataxia, width, label="Ataxia", color=PALETTE[0])
     ax2.bar(
-        x_pos + 0.5 * width, hearing_loss, width, label="Hearing Loss", color="#1abc9c", alpha=0.8
+        x_pos - 0.5 * width, nystagmus, width, label="Nystagmus", color=PALETTE[1], hatch="//"
     )
-    ax2.bar(x_pos + 1.5 * width, tinnitus, width, label="Tinnitus", color="#f39c12", alpha=0.8)
+    ax2.bar(
+        x_pos + 0.5 * width, hearing_loss, width, label="Hearing loss", color=PALETTE[2]
+    )
+    ax2.bar(
+        x_pos + 1.5 * width, tinnitus, width, label="Tinnitus", color=PALETTE[3], hatch="\\\\"
+    )
 
-    ax2.set_ylabel("Present (0/1)", fontsize=12, fontweight="bold")
+    ax2.set_ylabel("Sign present (0/1)")
     ax2.set_ylim(0, DEFAULT_BINARY_SCALE_MAX)
     ax2.set_xticks(x_pos)
-    ax2.set_xticklabels([f"{t:.1f}h" for t in time_points])
-    ax2.legend(loc="upper right", frameon=True, fancybox=True, shadow=True)
-    ax2.grid(True, alpha=DEFAULT_GRID_ALPHA, axis="y")
+    ax2.set_xticklabels([f"{t:.0f}" for t in time_points])
+    ax2.legend(loc="upper right", ncol=4)
+    ax2.grid(True, axis="y")
 
     # Plot 3: DRAS level progression (if available)
     ax3 = axes[2]
     if trajectory.predicted_dras_levels:
         dras_levels = trajectory.predicted_dras_levels
+
+        # Color zones (severity gradient, intentionally light so the line reads).
+        zone_specs = [
+            (0, 1, "#2ca02c", "DRAS-1 (safe)"),
+            (1, 2, "#a6d96a", "DRAS-2 (low)"),
+            (2, 3, "#fee08b", "DRAS-3 (moderate)"),
+            (3, 4, "#fdae61", "DRAS-4 (urgent)"),
+            (4, 5, "#d73027", "DRAS-5 (emergency)"),
+        ]
+        for lo, hi, color, label in zone_specs:
+            ax3.axhspan(lo, hi, alpha=0.12, color=color, label=label)
+
         ax3.plot(
             time_points,
             dras_levels,
             marker="o",
-            linewidth=2.5,
-            markersize=10,
-            color="#34495e",
-            label="Predicted DRAS Level",
+            linewidth=2.0,
+            markersize=7,
+            color=PALETTE[6],
+            label="Predicted DRAS level",
         )
-        ax3.fill_between(time_points, 0, dras_levels, alpha=0.3, color="#34495e")
 
-        # Color zones
-        ax3.axhspan(0, 1, alpha=0.1, color="green", label="Safe (DRAS-1)")
-        ax3.axhspan(1, 2, alpha=0.1, color="lightgreen", label="Low (DRAS-2)")
-        ax3.axhspan(2, 3, alpha=0.1, color="yellow", label="Moderate (DRAS-3)")
-        ax3.axhspan(3, 4, alpha=0.1, color="orange", label="Urgent (DRAS-4)")
-        ax3.axhspan(4, 5, alpha=0.1, color="red", label="Emergency (DRAS-5)")
-
-        ax3.set_ylabel("DRAS Level", fontsize=12, fontweight="bold")
+        ax3.set_ylabel("DRAS level")
         ax3.set_ylim(0, DEFAULT_DRAS_SCALE_MAX)
         ax3.set_yticks([1, 2, 3, 4, 5])
-        ax3.legend(loc="upper right", frameon=True, fancybox=True, shadow=True, ncol=2)
+        ax3.legend(loc="upper right", ncol=3)
     else:
         ax3.text(
             0.5,
             0.5,
-            "DRAS Levels Not Available",
+            "DRAS levels not available",
             ha="center",
             va="center",
             transform=ax3.transAxes,
-            fontsize=14,
             color="gray",
         )
 
-    ax3.set_xlabel("Time Since Onset (hours)", fontsize=12, fontweight="bold")
-    ax3.grid(True, alpha=DEFAULT_GRID_ALPHA)
+    ax3.set_xlabel("Time since onset (hours)")
 
-    plt.tight_layout()
-
-    # Save if requested
+    # Save both vector PDF + 300-dpi PNG if requested.
     if save_path:
-        fig.savefig(save_path, dpi=DEFAULT_DPI, bbox_inches="tight", facecolor="white")
-        print(f"[OK] Figure saved to: {save_path}")
+        _save_fig(fig, save_path)
 
     if show:
         plt.show()
@@ -206,8 +252,10 @@ def plot_multiple_trajectories(
     """
     fig, axes = plt.subplots(2, 1, figsize=figsize, sharex=True)
 
-    # Color palette
-    colors = sns.color_palette("husl", n_colors=len(trajectories))
+    # Color-blind-safe series colors + distinct markers/linestyles so the three
+    # scenarios separate by shape, not color alone.
+    markers = ["o", "s", "^", "D", "v", "P"]
+    linestyles = ["-", "--", "-.", ":"]
 
     # Plot vertigo severity
     ax1 = axes[0]
@@ -222,38 +270,39 @@ def plot_multiple_trajectories(
                 label += f" ({intervention_names[0]})"
 
         ax1.plot(
-            time_points, vertigo, marker="o", linewidth=2, label=label, color=colors[i], alpha=0.8
+            time_points,
+            vertigo,
+            marker=markers[i % len(markers)],
+            linestyle=linestyles[i % len(linestyles)],
+            label=label,
+            color=PALETTE[i % len(PALETTE)],
         )
 
-    ax1.set_ylabel("Vertigo Severity (0-10)", fontsize=12, fontweight="bold")
+    ax1.set_ylabel("Vertigo severity (0–10)")
     ax1.set_ylim(0, DEFAULT_SEVERITY_SCALE_MAX)
-    ax1.legend(loc="upper right", frameon=True, fancybox=True, shadow=True)
-    ax1.grid(True, alpha=DEFAULT_GRID_ALPHA)
-    ax1.set_title(
-        f"Disease Trajectory Comparison ({len(trajectories)} patients)",
-        fontsize=14,
-        fontweight="bold",
-        pad=15,
-    )
+    ax1.legend(loc="upper right")
+    ax1.set_title(f"Disease trajectory comparison ({len(trajectories)} scenarios)")
 
-    # Plot nausea severity
+    # Plot nausea severity (same color/marker mapping as vertigo panel)
     ax2 = axes[1]
     for i, traj in enumerate(trajectories):
         time_points = np.array(traj.time_points)
         nausea = [s.nausea_severity for s in traj.symptom_states]
 
-        ax2.plot(time_points, nausea, marker="s", linewidth=2, color=colors[i], alpha=0.8)
+        ax2.plot(
+            time_points,
+            nausea,
+            marker=markers[i % len(markers)],
+            linestyle=linestyles[i % len(linestyles)],
+            color=PALETTE[i % len(PALETTE)],
+        )
 
-    ax2.set_ylabel("Nausea Severity (0-10)", fontsize=12, fontweight="bold")
-    ax2.set_xlabel("Time Since Onset (hours)", fontsize=12, fontweight="bold")
+    ax2.set_ylabel("Nausea severity (0–10)")
+    ax2.set_xlabel("Time since onset (hours)")
     ax2.set_ylim(0, DEFAULT_SEVERITY_SCALE_MAX)
-    ax2.grid(True, alpha=DEFAULT_GRID_ALPHA)
-
-    plt.tight_layout()
 
     if save_path:
-        fig.savefig(save_path, dpi=DEFAULT_DPI, bbox_inches="tight", facecolor="white")
-        print(f"[OK] Figure saved to: {save_path}")
+        _save_fig(fig, save_path)
 
     if show:
         plt.show()
@@ -289,54 +338,56 @@ def plot_shap_importance(
         ... }
         >>> fig = plot_shap_importance(feature_importance)
     """
-    # Sort by absolute value
+    # Sort by absolute value, then draw largest at the top (descending downward).
     sorted_features = sorted(feature_importance.items(), key=lambda x: abs(x[1]), reverse=True)[
         :top_n
     ]
+    sorted_features = sorted_features[::-1]
 
-    features = [f[0] for f in sorted_features]
+    features = [f[0].replace("_", " ") for f in sorted_features]
     values = [f[1] for f in sorted_features]
 
-    # Color by positive/negative
-    colors = ["#e74c3c" if v > 0 else "#3498db" for v in values]
+    # Color by sign (Okabe-Ito orange/blue); bars carry sign too, so this is
+    # redundant-coded rather than color-only.
+    colors = [PALETTE[1] if v > 0 else PALETTE[0] for v in values]
 
     fig, ax = plt.subplots(figsize=figsize)
 
-    bars = ax.barh(features, values, color=colors, alpha=0.8, edgecolor="black")
+    bars = ax.barh(features, values, color=colors, edgecolor="black", linewidth=0.6)
 
-    # Add value labels
-    for i, (bar, value) in enumerate(zip(bars, values)):
+    # Add value labels, offset to the open side of each bar to avoid overlap.
+    span = max(abs(min(values)), abs(max(values))) or 1.0
+    pad = 0.02 * span
+    for bar, value in zip(bars, values):
         width = bar.get_width()
+        ha = "left" if value >= 0 else "right"
         ax.text(
-            width + 0.05 * max(abs(min(values)), abs(max(values))),
+            width + (pad if value >= 0 else -pad),
             bar.get_y() + bar.get_height() / 2,
             f"{value:+.2f}",
             va="center",
-            fontweight="bold",
-            fontsize=10,
+            ha=ha,
+            fontsize=9,
         )
 
-    ax.axvline(x=0, color="black", linewidth=1.5, linestyle="-")
-    ax.set_xlabel("Feature Contribution to Urgency Score", fontsize=12, fontweight="bold")
-    ax.set_title(
-        "Feature Importance for DRAS-5 Classification", fontsize=14, fontweight="bold", pad=15
-    )
-    ax.grid(True, alpha=0.3, axis="x")
+    ax.axvline(x=0, color="black", linewidth=1.0)
+    # Headroom so value labels are not clipped by the axes box.
+    ax.set_xlim(min(0, min(values)) - 0.18 * span, max(0, max(values)) + 0.18 * span)
+    ax.set_xlabel("Feature contribution to urgency score (points)")
+    ax.set_title("Feature importance for DRAS-5 classification")
+    ax.grid(True, axis="x")
 
     # Legend
     from matplotlib.patches import Patch
 
     legend_elements = [
-        Patch(facecolor="#e74c3c", label="Increases Urgency", alpha=0.8),
-        Patch(facecolor="#3498db", label="Decreases Urgency", alpha=0.8),
+        Patch(facecolor=PALETTE[1], label="Increases urgency"),
+        Patch(facecolor=PALETTE[0], label="Decreases urgency"),
     ]
-    ax.legend(handles=legend_elements, loc="lower right", frameon=True, fancybox=True, shadow=True)
-
-    plt.tight_layout()
+    ax.legend(handles=legend_elements, loc="lower right")
 
     if save_path:
-        fig.savefig(save_path, dpi=300, bbox_inches="tight", facecolor="white")
-        print(f"[OK] Figure saved to: {save_path}")
+        _save_fig(fig, save_path)
 
     if show:
         plt.show()
